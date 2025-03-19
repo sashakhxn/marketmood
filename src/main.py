@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from reddit_collector import RedditCollector
+from src.reddit_collector import RedditCollector
 from typing import Dict, List, Any
 
 app = FastAPI(

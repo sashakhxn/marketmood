@@ -1,0 +1,3 @@
+"""
+MarketMood API package
+""" 
