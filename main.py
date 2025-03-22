@@ -209,23 +209,23 @@ async def get_trending_stocks(hours: int = 24):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/market/sentiment")
-async def get_market_sentiment(hours: int = 24):
+async def get_market_sentiment():
     try:
-        # Get posts and comments from the last N hours
-        end_time = datetime.utcnow()
-        start_time = end_time - timedelta(hours=hours)
+        # Get the latest pre-processed analysis
+        analysis = database.get_latest_market_analysis()
         
-        posts = database.get_posts_by_time_range(start_time, end_time)
-        comments = database.get_comments_by_time_range(start_time, end_time)
-        
-        # Analyze market trends
-        analysis = market_analyzer.analyze_market_trends(posts, comments)
-        
+        if not analysis:
+            raise HTTPException(
+                status_code=404,
+                detail="No market analysis available. Please try again later."
+            )
+            
         return {
             "fear_greed_index": analysis["fear_greed_index"],
-            "market_sentiment": analysis["batch_analysis"]["market_sentiment"],
-            "risk_indicators": analysis["batch_analysis"]["risk_indicators"],
-            "timestamp": analysis["timestamp"]
+            "market_sentiment": analysis["market_sentiment"],
+            "risk_indicators": analysis["risk_indicators"],
+            "date": analysis["date"],
+            "last_updated": analysis["created_at"]
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
