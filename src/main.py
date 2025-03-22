@@ -1,13 +1,11 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
 from .reddit_collector import RedditCollector
 from .database import Database
 from .sentiment_analyzer import SentimentAnalyzer
 from .market_analyzer import MarketAnalyzer
 from typing import Dict, List, Any
 from datetime import datetime, timedelta
-import io
 
 app = FastAPI(
     title="MarketMood API",
@@ -164,14 +162,13 @@ async def get_wordcloud(hours: int = 24):
         posts = database.get_posts_by_time_range(start_time, end_time)
         comments = database.get_comments_by_time_range(start_time, end_time)
         
-        # Generate word cloud
+        # Analyze market trends
         analysis = market_analyzer.analyze_market_trends(posts, comments)
         
-        # Return word cloud as PNG image
-        return StreamingResponse(
-            io.BytesIO(analysis["wordcloud"]),
-            media_type="image/png"
-        )
+        return {
+            "word_frequencies": analysis["word_frequencies"],
+            "timestamp": analysis["timestamp"]
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

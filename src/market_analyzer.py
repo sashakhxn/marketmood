@@ -8,9 +8,6 @@ from collections import Counter
 from textblob import TextBlob
 import pandas as pd
 import numpy as np
-from wordcloud import WordCloud
-import matplotlib.pyplot as plt
-import io
 
 class MarketAnalyzer:
     def __init__(self):
@@ -99,24 +96,20 @@ Respond in JSON format with these fields:
         
         return Counter(mentions).most_common()
         
-    def generate_wordcloud(self, text: str) -> bytes:
+    def generate_word_frequencies(self, text: str, max_words: int = 100) -> List[Dict[str, Any]]:
         """
-        Generate word cloud from text
-        Returns: PNG image as bytes
+        Generate word frequencies for word cloud generation
+        Returns: List of dicts with word and frequency
         """
-        wordcloud = WordCloud(
-            width=800, height=400,
-            background_color='white',
-            max_words=100
-        ).generate(text)
+        # Split text into words and count frequencies
+        words = text.lower().split()
+        word_counts = Counter(words)
         
-        # Convert to bytes
-        img = wordcloud.to_image()
-        img_byte_arr = io.BytesIO()
-        img.save(img_byte_arr, format='PNG')
-        img_byte_arr = img_byte_arr.getvalue()
-        
-        return img_byte_arr
+        # Convert to list of dicts
+        return [
+            {"word": word, "frequency": count}
+            for word, count in word_counts.most_common(max_words)
+        ]
         
     def calculate_fear_greed_index(self, sentiment_scores: List[float]) -> float:
         """
@@ -145,8 +138,8 @@ Respond in JSON format with these fields:
         # Extract stock mentions
         stock_mentions = self.extract_stock_mentions(text_content)
         
-        # Generate word cloud
-        wordcloud_img = self.generate_wordcloud(text_content)
+        # Generate word frequencies
+        word_frequencies = self.generate_word_frequencies(text_content)
         
         # Calculate sentiment scores
         sentiment_scores = [
@@ -162,7 +155,7 @@ Respond in JSON format with these fields:
         
         return {
             "stock_mentions": stock_mentions,
-            "wordcloud": wordcloud_img,
+            "word_frequencies": word_frequencies,
             "fear_greed_index": fear_greed_index,
             "batch_analysis": batch_analysis,
             "timestamp": datetime.utcnow().isoformat()
