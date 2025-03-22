@@ -1,9 +1,9 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from .reddit_collector import RedditCollector
-from .database import Database
-from .sentiment_analyzer import SentimentAnalyzer
-from .market_analyzer import MarketAnalyzer
+from reddit_collector import RedditCollector
+from database import Database
+from sentiment_analyzer import SentimentAnalyzer
+from market_analyzer import MarketAnalyzer
 from typing import Dict, List, Any
 from datetime import datetime, timedelta
 
