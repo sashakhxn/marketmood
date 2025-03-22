@@ -2,6 +2,7 @@ from supabase import create_client
 import os
 from typing import Dict, List, Any
 from datetime import datetime
+import json
 
 class Database:
     def __init__(self):
@@ -65,33 +66,25 @@ class Database:
             print(f"Error getting comments: {str(e)}")
             raise
             
-    def get_posts_by_time_range(self, start_time: datetime, end_time: datetime) -> List[Dict[str, Any]]:
-        """Get posts within a time range"""
+    def get_posts_by_time_range(self, start_time: datetime, end_time: datetime, page: int = 1, page_size: int = 50) -> List[Dict[str, Any]]:
+        """Get posts within a time range with pagination"""
         try:
-            response = self.supabase.table('posts')\
-                .select('*')\
-                .gte('created_utc', start_time.isoformat())\
-                .lte('created_utc', end_time.isoformat())\
-                .order('created_utc', desc=True)\
-                .execute()
+            start = (page - 1) * page_size
+            response = self.supabase.table('posts').select('*').gte('created_utc', start_time.isoformat()).lte('created_utc', end_time.isoformat()).order('created_utc', desc=True).range(start, start + page_size - 1).execute()
             return response.data
         except Exception as e:
-            print(f"Error getting posts by time range: {str(e)}")
-            raise
+            print(f"Error getting posts by time range: {e}")
+            return []
             
-    def get_comments_by_time_range(self, start_time: datetime, end_time: datetime) -> List[Dict[str, Any]]:
-        """Get comments within a time range"""
+    def get_comments_by_time_range(self, start_time: datetime, end_time: datetime, page: int = 1, page_size: int = 50) -> List[Dict[str, Any]]:
+        """Get comments within a time range with pagination"""
         try:
-            response = self.supabase.table('comments')\
-                .select('*')\
-                .gte('created_utc', start_time.isoformat())\
-                .lte('created_utc', end_time.isoformat())\
-                .order('created_utc', desc=True)\
-                .execute()
+            start = (page - 1) * page_size
+            response = self.supabase.table('comments').select('*').gte('created_utc', start_time.isoformat()).lte('created_utc', end_time.isoformat()).order('created_utc', desc=True).range(start, start + page_size - 1).execute()
             return response.data
         except Exception as e:
-            print(f"Error getting comments by time range: {str(e)}")
-            raise
+            print(f"Error getting comments by time range: {e}")
+            return []
             
     def get_sentiment_by_time_range(self, start_time: datetime, end_time: datetime) -> List[Dict[str, Any]]:
         """Get sentiment analysis results within a time range"""
@@ -105,4 +98,63 @@ class Database:
             return response.data
         except Exception as e:
             print(f"Error getting sentiment by time range: {str(e)}")
+            raise
+
+    def store_daily_analysis(self, date, stock_mentions, word_frequencies, fear_greed_index, 
+                            market_sentiment, trending_topics, risk_indicators):
+        """
+        Store daily market analysis in the database
+        """
+        try:
+            query = """
+            INSERT INTO daily_market_analysis 
+            (date, stock_mentions, word_frequencies, fear_greed_index, 
+             market_sentiment, trending_topics, risk_indicators)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (date) DO UPDATE SET
+                stock_mentions = EXCLUDED.stock_mentions,
+                word_frequencies = EXCLUDED.word_frequencies,
+                fear_greed_index = EXCLUDED.fear_greed_index,
+                market_sentiment = EXCLUDED.market_sentiment,
+                trending_topics = EXCLUDED.trending_topics,
+                risk_indicators = EXCLUDED.risk_indicators
+            """
+            
+            self.supabase.table('daily_market_analysis').upsert({
+                "date": date,
+                "stock_mentions": json.dumps(stock_mentions),
+                "word_frequencies": json.dumps(word_frequencies),
+                "fear_greed_index": fear_greed_index,
+                "market_sentiment": json.dumps(market_sentiment),
+                "trending_topics": json.dumps(trending_topics),
+                "risk_indicators": json.dumps(risk_indicators)
+            }).execute()
+            
+        except Exception as e:
+            print(f"Error storing daily analysis: {str(e)}")
+            raise
+
+    def get_latest_market_analysis(self):
+        """
+        Get the most recent market analysis
+        """
+        try:
+            response = self.supabase.table('daily_market_analysis').select('*').order('date', desc=True).limit(1).execute()
+            result = response.data[0] if response.data else None
+            
+            if result:
+                return {
+                    "date": result['date'],
+                    "stock_mentions": json.loads(result['stock_mentions']),
+                    "word_frequencies": json.loads(result['word_frequencies']),
+                    "fear_greed_index": result['fear_greed_index'],
+                    "market_sentiment": json.loads(result['market_sentiment']),
+                    "trending_topics": json.loads(result['trending_topics']),
+                    "risk_indicators": json.loads(result['risk_indicators']),
+                    "created_at": result['created_at']
+                }
+            return None
+            
+        except Exception as e:
+            print(f"Error getting latest market analysis: {str(e)}")
             raise 

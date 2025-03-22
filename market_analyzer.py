@@ -159,4 +159,67 @@ Respond in JSON format with these fields:
             "fear_greed_index": fear_greed_index,
             "batch_analysis": batch_analysis,
             "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    def analyze_stock_mentions(self, posts: List[Dict[str, Any]], 
+                             comments: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Analyze only stock mentions
+        """
+        # Combine all content
+        all_content = posts + comments
+        text_content = " ".join([
+            f"{content.get('title', '')} {content.get('text', '')}"
+            for content in all_content
+        ])
+        
+        # Extract stock mentions
+        stock_mentions = self.extract_stock_mentions(text_content)
+        
+        return {
+            "stock_mentions": stock_mentions,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    def analyze_sentiment(self, posts: List[Dict[str, Any]], 
+                         comments: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Analyze only sentiment
+        """
+        # Combine all content
+        all_content = posts + comments
+        
+        # Calculate sentiment scores
+        sentiment_scores = [
+            TextBlob(content.get('text', '')).sentiment.polarity
+            for content in all_content
+        ]
+        
+        # Calculate fear/greed index
+        fear_greed_index = self.calculate_fear_greed_index(sentiment_scores)
+        
+        return {
+            "fear_greed_index": fear_greed_index,
+            "average_sentiment": np.mean(sentiment_scores) if sentiment_scores else 0,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    def analyze_wordcloud(self, posts: List[Dict[str, Any]], 
+                         comments: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Analyze only word frequencies for word cloud
+        """
+        # Combine all content
+        all_content = posts + comments
+        text_content = " ".join([
+            f"{content.get('title', '')} {content.get('text', '')}"
+            for content in all_content
+        ])
+        
+        # Generate word frequencies
+        word_frequencies = self.generate_word_frequencies(text_content)
+        
+        return {
+            "word_frequencies": word_frequencies,
+            "timestamp": datetime.utcnow().isoformat()
         } 

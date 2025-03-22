@@ -6,7 +6,6 @@ from sentiment_analyzer import SentimentAnalyzer
 from market_analyzer import MarketAnalyzer
 from typing import Dict, List, Any
 from datetime import datetime, timedelta
-import time
 
 app = FastAPI(
     title="MarketMood API",
@@ -28,10 +27,6 @@ reddit_collector = RedditCollector()
 database = Database()
 sentiment_analyzer = SentimentAnalyzer()
 market_analyzer = MarketAnalyzer()
-
-# Cache for market trends
-market_trends_cache = {}
-CACHE_DURATION = 300  # 5 minutes in seconds
 
 @app.get("/")
 async def root():
@@ -141,29 +136,19 @@ async def analyze_comment(comment_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/market/trends")
-async def get_market_trends():
+async def get_market_trends(hours: int = 24):
     try:
-        # Get the latest pre-processed analysis
-        analysis = database.get_latest_market_analysis()
+        # Get posts and comments from the last N hours
+        end_time = datetime.utcnow()
+        start_time = end_time - timedelta(hours=hours)
         
-        if not analysis:
-            raise HTTPException(
-                status_code=404,
-                detail="No market analysis available. Please try again later."
-            )
-            
-        return {
-            "data": {
-                "stock_mentions": analysis["stock_mentions"],
-                "word_frequencies": analysis["word_frequencies"],
-                "fear_greed_index": analysis["fear_greed_index"],
-                "market_sentiment": analysis["market_sentiment"],
-                "trending_topics": analysis["trending_topics"],
-                "risk_indicators": analysis["risk_indicators"]
-            },
-            "date": analysis["date"],
-            "last_updated": analysis["created_at"]
-        }
+        posts = database.get_posts_by_time_range(start_time, end_time)
+        comments = database.get_comments_by_time_range(start_time, end_time)
+        
+        # Analyze market trends
+        analysis = market_analyzer.analyze_market_trends(posts, comments)
+        
+        return analysis
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
