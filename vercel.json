@@ -2,18 +2,26 @@
     "version": 2,
     "builds": [
         {
-            "src": "main.py",
+            "src": "api/*/index.py",
             "use": "@vercel/python"
         },
         {
-            "src": "api/*/index.py",
+            "src": "main.py",
             "use": "@vercel/python"
         }
     ],
     "routes": [
         {
-            "src": "/api/(.*)",
-            "dest": "/api/$1"
+            "src": "/test-sentiment",
+            "dest": "/api/test-sentiment/index.py"
+        },
+        {
+            "src": "/market/(.*)",
+            "dest": "/api/market/$1"
+        },
+        {
+            "src": "/health",
+            "dest": "/api/health/index.py"
         },
         {
             "src": "/(.*)",
