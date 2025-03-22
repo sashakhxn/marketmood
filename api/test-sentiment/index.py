@@ -51,6 +51,20 @@ class handler(BaseHTTPRequestHandler):
                 ]
             }
             
+            # Send initial response immediately
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Transfer-Encoding', 'chunked')
+            self.end_headers()
+            
+            # Send initial status
+            self.wfile.write(json.dumps({
+                "status": "processing",
+                "message": "Analyzing market sentiment...",
+                "timestamp": datetime.now().isoformat()
+            }).encode())
+            self.wfile.flush()
+            
             # Prepare the prompt for analyzing retail sentiment
             prompt = f"""Analyze this social media data from retail traders and provide:
 1. Trending stocks (most mentioned with sentiment)
@@ -86,10 +100,7 @@ Respond in JSON format with these fields:
                     timeout=25  # 25 second timeout
                 )
             except Timeout:
-                # Return a simplified response if the API times out
-                self.send_response(200)
-                self.send_header('Content-type', 'application/json')
-                self.end_headers()
+                # Send timeout response
                 self.wfile.write(json.dumps({
                     "status": "success",
                     "analysis": {
@@ -148,9 +159,7 @@ Respond in JSON format with these fields:
             else:
                 raise Exception("Could not find JSON in response")
             
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.end_headers()
+            # Send final response
             self.wfile.write(json.dumps({
                 "status": "success",
                 "analysis": analysis,
