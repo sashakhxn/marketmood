@@ -15,6 +15,10 @@
     ],
     "routes": [
         {
+            "src": "/daily-processor",
+            "dest": "/api/daily-processor/index.py"
+        },
+        {
             "src": "/test-sentiment",
             "dest": "/api/test-sentiment/index.py"
         },
@@ -33,7 +37,7 @@
     ],
     "crons": [
         {
-            "path": "/api/daily-processor",
+            "path": "/daily-processor",
             "schedule": "0 0 * * *"
         }
     ]
