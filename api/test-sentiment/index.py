@@ -2,6 +2,7 @@ from http.server import BaseHTTPRequestHandler
 from sentiment_analyzer import SentimentAnalyzer
 import json
 import requests
+import re
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -41,17 +42,30 @@ Respond in JSON format with these fields:
                 }
             )
             
-            # Log the raw response for debugging
+            if response.status_code != 200:
+                raise Exception(f"API request failed: {response.text}")
+            
+            # Parse the response
+            result = response.json()
+            content = result['choices'][0]['message']['content']
+            
+            # Extract JSON from markdown code block
+            json_match = re.search(r'```json\n(.*?)\n```', content, re.DOTALL)
+            if json_match:
+                json_str = json_match.group(1)
+                analysis = json.loads(json_str)
+            else:
+                raise Exception("Could not find JSON in response")
+            
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
             self.wfile.write(json.dumps({
-                "status": "debug",
-                "api_response": {
-                    "status_code": response.status_code,
-                    "headers": dict(response.headers),
-                    "text": response.text
-                }
+                "status": "success",
+                "test_text": test_text,
+                "sentiment_score": analysis["sentiment_score"],
+                "sentiment_label": analysis["sentiment_label"],
+                "confidence": analysis["confidence"]
             }).encode())
             
         except Exception as e:
