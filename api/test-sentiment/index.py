@@ -60,11 +60,17 @@ class handler(BaseHTTPRequestHandler):
 Data: {json.dumps(social_data)}
 
 Respond in JSON format with these fields:
-- trending_stocks (list of {stock, mentions, sentiment_score, sentiment_label})
-- market_sentiment (overall sentiment score and label)
-- fear_greed_index (0-100, where 0 is extreme fear, 100 is extreme greed)
-- key_themes (list of main topics/themes)
-- confidence (overall confidence in the analysis)"""
+- trending_stocks: list of objects with fields:
+  * symbol: stock symbol
+  * mentions: number of mentions
+  * sentiment_score: between -1 and 1
+  * sentiment_label: "positive", "negative", or "neutral"
+- market_sentiment: object with fields:
+  * score: between -1 and 1
+  * label: "positive", "negative", or "neutral"
+- fear_greed_index: number between 0 and 100
+- key_themes: list of strings
+- confidence: number between 0 and 1"""
 
             # Make the API request
             response = requests.post(
