@@ -30,5 +30,11 @@
             "src": "/(.*)",
             "dest": "main.py"
         }
+    ],
+    "crons": [
+        {
+            "path": "/api/daily-processor",
+            "schedule": "0 0 * * *"
+        }
     ]
 } 
