@@ -3,6 +3,7 @@ from sentiment_analyzer import SentimentAnalyzer
 import json
 import requests
 import re
+from datetime import datetime, timedelta
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -10,85 +11,95 @@ class handler(BaseHTTPRequestHandler):
             # Initialize sentiment analyzer
             analyzer = SentimentAnalyzer()
             
-            # Test cases with different types of market-related text
-            test_cases = [
-                {
-                    "name": "Positive Price Movement",
-                    "text": "The market is showing strong bullish signals today with major indices up 2%."
-                },
-                {
-                    "name": "Negative Market Fear",
-                    "text": "Market crash fears are growing as volatility spikes and trading volume drops."
-                },
-                {
-                    "name": "Neutral Technical Analysis",
-                    "text": "The S&P 500 is trading at its 50-day moving average with moderate volume."
-                },
-                {
-                    "name": "Mixed Economic Indicators",
-                    "text": "While unemployment is down, inflation concerns are rising in the market."
-                },
-                {
-                    "name": "Company-Specific News",
-                    "text": "Tech giant reports record earnings but warns of supply chain challenges."
-                }
-            ]
+            # Sample social media data (simulating what we'd get from Reddit/X)
+            social_data = {
+                "posts": [
+                    {
+                        "platform": "reddit",
+                        "subreddit": "wallstreetbets",
+                        "content": "🚀 GME is the play today! Diamond hands!",
+                        "upvotes": 1500,
+                        "comments": 200
+                    },
+                    {
+                        "platform": "reddit",
+                        "subreddit": "stocks",
+                        "content": "NVDA earnings tomorrow - what are your predictions?",
+                        "upvotes": 800,
+                        "comments": 150
+                    },
+                    {
+                        "platform": "twitter",
+                        "hashtags": ["#stocks", "#trading"],
+                        "content": "TSLA showing strong momentum today. Retail traders are bullish!",
+                        "likes": 1200,
+                        "retweets": 300
+                    }
+                ],
+                "comments": [
+                    {
+                        "platform": "reddit",
+                        "content": "AAPL is undervalued at current levels",
+                        "upvotes": 500
+                    },
+                    {
+                        "platform": "twitter",
+                        "content": "Market looking bearish today. Time to buy puts?",
+                        "likes": 400
+                    }
+                ]
+            }
             
-            results = []
-            for test_case in test_cases:
-                # Prepare the prompt
-                prompt = f"""Analyze the sentiment of this text and provide:
-1. A sentiment score between -1 (very negative) and 1 (very positive)
-2. A sentiment label (positive, negative, or neutral)
-3. A confidence score between 0 and 1
+            # Prepare the prompt for analyzing retail sentiment
+            prompt = f"""Analyze this social media data from retail traders and provide:
+1. Trending stocks (most mentioned with sentiment)
+2. Overall market sentiment
+3. Fear/Greed indicators
+4. Key themes/topics
 
-Text: {test_case['text']}
+Data: {json.dumps(social_data)}
 
 Respond in JSON format with these fields:
-- sentiment_score
-- sentiment_label
-- confidence"""
+- trending_stocks (list of {stock, mentions, sentiment_score, sentiment_label})
+- market_sentiment (overall sentiment score and label)
+- fear_greed_index (0-100, where 0 is extreme fear, 100 is extreme greed)
+- key_themes (list of main topics/themes)
+- confidence (overall confidence in the analysis)"""
 
-                # Make the API request
-                response = requests.post(
-                    analyzer.api_url,
-                    headers=analyzer.headers,
-                    json={
-                        "model": "deepseek-chat",
-                        "messages": [{"role": "user", "content": prompt}],
-                        "temperature": 0.3
-                    }
-                )
-                
-                if response.status_code != 200:
-                    raise Exception(f"API request failed: {response.text}")
-                
-                # Parse the response
-                result = response.json()
-                content = result['choices'][0]['message']['content']
-                
-                # Extract JSON from markdown code block
-                json_match = re.search(r'```json\n(.*?)\n```', content, re.DOTALL)
-                if json_match:
-                    json_str = json_match.group(1)
-                    analysis = json.loads(json_str)
-                else:
-                    raise Exception("Could not find JSON in response")
-                
-                results.append({
-                    "name": test_case["name"],
-                    "text": test_case["text"],
-                    "sentiment_score": analysis["sentiment_score"],
-                    "sentiment_label": analysis["sentiment_label"],
-                    "confidence": analysis["confidence"]
-                })
+            # Make the API request
+            response = requests.post(
+                analyzer.api_url,
+                headers=analyzer.headers,
+                json={
+                    "model": "deepseek-chat",
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": 0.3
+                }
+            )
+            
+            if response.status_code != 200:
+                raise Exception(f"API request failed: {response.text}")
+            
+            # Parse the response
+            result = response.json()
+            content = result['choices'][0]['message']['content']
+            
+            # Extract JSON from markdown code block
+            json_match = re.search(r'```json\n(.*?)\n```', content, re.DOTALL)
+            if json_match:
+                json_str = json_match.group(1)
+                analysis = json.loads(json_str)
+            else:
+                raise Exception("Could not find JSON in response")
             
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
             self.wfile.write(json.dumps({
                 "status": "success",
-                "results": results
+                "analysis": analysis,
+                "timestamp": datetime.now().isoformat(),
+                "data_sources": ["reddit", "twitter"]
             }).encode())
             
         except Exception as e:
